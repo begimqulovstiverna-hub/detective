@@ -647,9 +647,11 @@ def help_cmd(message):
 # BOTNI ISHGA TUSHIRISH (Xatoliklarga chidamli variant)
 if __name__ == "__main__":
     print("🚀 Bot ishga tushdi...")
-    while True:
-        try:
-            bot.polling(none_stop=True, interval=0, timeout=20)
-        except Exception as e:
-            print(f"⚠️ Polling xatosi: {e}")
-            time.sleep(5) # 5 soniya kutib qayta ulanadi
+    
+    # Renderda botingiz o'chib qolmasligi uchun infinity_polling eng yaxshisi.
+    # U ichki xatoliklarni o'zi boshqaradi va qayta ulanadi.
+    try:
+        bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    except Exception as e:
+        print(f"⚠️ Kutilmagan xato: {e}")
+        time.sleep(5)
