@@ -7,18 +7,21 @@ import requests
 from fpdf import FPDF
 from PIL import Image
 from PIL.ExifTags import TAGS
+#############################
 
-#################################
-import os
+def get_sherlock_path():
+    # Render-da loyiha ildizida 'sherlock' papkasi bo'ladi
+    possible_paths = [
+        os.path.join(os.getcwd(), "sherlock", "sherlock", "sherlock.py"),
+        os.path.join(os.getcwd(), "sherlock", "sherlock.py"),
+        "python3 -m sherlock" # Modul sifatida o'rnatilgan bo'lsa
+    ]
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    return "sherlock" # Agar PATH-da bo'lsa
 
-# Faylni avtomatik qidirish
-def find_sherlock():
-    for root, dirs, files in os.walk("."):
-        if "sherlock.py" in files:
-            return os.path.join(root, "sherlock.py")
-    return None
-
-SHERLOCK_PATH = find_sherlock()
+SHERLOCK_PATH = get_sherlock_path()
 
 
 ##############################
@@ -45,7 +48,7 @@ bot = telebot.TeleBot(TOKEN)
 #SHERLOCK_PATH = "sherlock/sherlock/sherlock.py"
 
 # --- METADATA (RASM TAHLILI) - BUNI ENG TEPAGA QO'YING ---
-@bot.message_handler(content_types=['document'])
+#@bot.message_handler(content_types=['document'])
 # --- UNIVERSAL FAYL HANDLERI (Metadata + VirusScan) ---
 @bot.message_handler(content_types=['document'])
 def handle_universal_file(message):
@@ -215,38 +218,37 @@ def run_sherlock_pro(message):
     status = bot.send_message(message.chat.id, f"📡 *{username}* bo'yicha global qidiruv boshlandi...", parse_mode='Markdown')
     
     try:
-        # Progress bar
-        time.sleep(1)
+        # Progress simulyatsiyasi
         bot.edit_message_text(f"🔍 *Bazalar tahlil qilinmoqda...* \n`[██████░░░░] 60%`", message.chat.id, status.message_id, parse_mode='Markdown')
         
+        # Sherlock buyrug'ini ishga tushirish
+        # --timeout 1 va --print-found qidiruvni tezlashtiradi
         cmd = f"python3 {SHERLOCK_PATH} {username} --timeout 1 --print-found"
-        result = subprocess.check_output(cmd, shell=True).decode('utf-8')
-        
-        # Hisobot yaratish (PDF)
-        bot.edit_message_text(f"📄 *Hisobot tayyorlanmoqda...* \n`[█████████░] 90%`", message.chat.id, status.message_id, parse_mode='Markdown')
-        
-        pdf = FPDF()
-        pdf.add_page()
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt=f"OSINT SHERLOCK REPORT: {username}", ln=1, align='C')
+        result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
         
         found_links = [line for line in result.split('\n') if "http" in line]
         
         if found_links:
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+            pdf.cell(200, 10, txt=f"OSINT SHERLOCK REPORT: {username}", ln=1, align='C')
+            
             for link in found_links:
-                pdf.multi_cell(0, 10, txt=link)
+                pdf.multi_cell(0, 10, txt=link.strip())
             
             pdf_file = f"{username}_results.pdf"
             pdf.output(pdf_file)
             
             with open(pdf_file, 'rb') as doc:
-                bot.send_document(message.chat.id, doc, caption=f"✅ *{username}* uchun qidiruv yakunlandi.")
+                bot.send_document(message.chat.id, doc, caption=f"✅ *{username}* uchun qidiruv yakunlandi.\nTopilgan saytlar: {len(found_links)}")
             os.remove(pdf_file)
         else:
-            bot.send_message(message.chat.id, f"❌ *{username}* bo'yicha hech qanday profil topilmadi.")
+            bot.send_message(message.chat.id, f"❌ *{username}* bo'yicha hech qanday ochiq profil topilmadi.")
 
     except Exception as e:
-        bot.send_message(message.chat.id, f"⚠️ *Xato yuz berdi:* Sherlock o'rnatilganligini va yo'l to'g'riligini tekshiring.")
+        print(f"Sherlock Error: {e}")
+        bot.send_message(message.chat.id, f"⚠️ *Xato yuz berdi:* Sherlock tizimida muammo. Serverda Sherlock klonlanganligini tekshiring.")
     
     finally:
         bot.delete_message(message.chat.id, status.message_id)
