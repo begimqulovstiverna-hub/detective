@@ -9,3 +9,4 @@ pandas
 PySocks
 stem
 #requests_fuzzy
+flask
