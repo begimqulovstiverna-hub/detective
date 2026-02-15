@@ -10,3 +10,4 @@ PySocks
 stem
 #requests_fuzzy
 flask
+beautifulsoup4
