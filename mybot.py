@@ -9,19 +9,20 @@ from PIL import Image
 from PIL.ExifTags import TAGS
 #############################
 
-def get_sherlock_path():
-    # Render-da loyiha ildizida 'sherlock' papkasi bo'ladi
-    possible_paths = [
-        os.path.join(os.getcwd(), "sherlock", "sherlock", "sherlock.py"),
-        os.path.join(os.getcwd(), "sherlock", "sherlock.py"),
-        "python3 -m sherlock" # Modul sifatida o'rnatilgan bo'lsa
-    ]
-    for path in possible_paths:
-        if os.path.exists(path):
-            return path
-    return "sherlock" # Agar PATH-da bo'lsa
+import os
 
-SHERLOCK_PATH = get_sherlock_path()
+def get_sherlock_path():
+    # Render'da loyiha 'src' papkasida joylashgan bo'ladi
+    current_dir = os.getcwd()
+    # Sherlock klonlanganda ichma-ich papka hosil qilishi mumkin
+    path1 = os.path.join(current_dir, "sherlock", "sherlock", "sherlock.py")
+    path2 = os.path.join(current_dir, "sherlock", "sherlock.py")
+    
+    if os.path.exists(path1):
+        return path1
+    elif os.path.exists(path2):
+        return path2
+    return "sherlock.py" # Oxirgi chora
 
 
 ##############################
@@ -208,51 +209,108 @@ def track_ip_detailed(message):
 
 ###############################
 # --- SHERLOCK (USERNAME QIDIRUV) ---
-@bot.message_handler(func=lambda message: message.text == '🔍 Sherlock')
-def sherlock_handler(message):
-    msg = bot.send_message(message.chat.id, "👤 *Username yuboring:* \n(Masalan: `johndoe`)", parse_mode='Markdown')
-    bot.register_next_step_handler(msg, run_sherlock_pro)
+import os
+import subprocess
+from fpdf import FPDF
 
+# 1. Sherlock skriptini aniq manzilini topish funksiyasi
+def get_sherlock_path():
+    current_dir = os.getcwd()
+    # Render va Linux muhitlari uchun mumkin bo'lgan barcha yo'llar
+    possible_paths = [
+        os.path.join(current_dir, "sherlock", "sherlock", "sherlock.py"),
+        os.path.join(current_dir, "sherlock", "sherlock.py"),
+        os.path.join(current_dir, "sherlock.py")
+    ]
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            return path
+    return None
+
+# 2. Sherlockni ishga tushirish va PDF hisobot yaratish
 def run_sherlock_pro(message):
     username = message.text.strip().replace('@', '')
-    status = bot.send_message(message.chat.id, f"📡 *{username}* bo'yicha global qidiruv boshlandi...", parse_mode='Markdown')
     
+    # Username juda qisqa bo'lsa to'xtatamiz
+    if len(username) < 3:
+        bot.send_message(message.chat.id, "❌ **Xato:** Username juda qisqa!")
+        return
+
+    path = get_sherlock_path()
+    
+    if not path:
+        bot.send_message(message.chat.id, "⚠️ **Xato:** Sherlock tizimi serverda topilmadi. Iltimos, qayta o'rnating.")
+        return
+
+    sherlock_dir = os.path.dirname(path) 
+    status = bot.send_message(message.chat.id, f"🔍 *{username}* bo'yicha global qidiruv boshlandi...\n`[▓▓░░░░░░░░] 20%`", parse_mode='Markdown')
+
     try:
-        # Progress simulyatsiyasi
-        bot.edit_message_text(f"🔍 *Bazalar tahlil qilinmoqda...* \n`[██████░░░░] 60%`", message.chat.id, status.message_id, parse_mode='Markdown')
+        # Buyruqni tayyorlash: --timeout 1 va --print-found qidiruvni tezlashtiradi
+        # --no-color terminal ranglarini PDFga aralashib ketmasligi uchun kerak
+        cmd = ["python3", path, username, "--timeout", "1", "--print-found", "--no-color"]
         
-        # Sherlock buyrug'ini ishga tushirish
-        # --timeout 1 va --print-found qidiruvni tezlashtiradi
-        cmd = f"python3 {SHERLOCK_PATH} {username} --timeout 1 --print-found"
-        result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8')
+        bot.edit_message_text(f"📡 *700 dan ortiq bazalar tekshirilmoqda...*\n`[▓▓▓▓▓▓░░░░] 60%`", message.chat.id, status.message_id, parse_mode='Markdown')
         
-        found_links = [line for line in result.split('\n') if "http" in line]
+        # Sherlockni ishga tushiramiz
+        result = subprocess.check_output(
+            cmd, 
+            cwd=sherlock_dir, 
+            stderr=subprocess.STDOUT,
+            timeout=180 # 3 daqiqadan oshsa to'xtatadi
+        ).decode('utf-8')
+        
+        # Natijadan faqat linklarni ajratib olamiz
+        found_links = [line.strip() for line in result.split('\n') if "http" in line and "Check" not in line]
         
         if found_links:
+            bot.edit_message_text(f"📄 *Hisobot tayyorlanmoqda...*\n`[▓▓▓▓▓▓▓▓▓░] 90%`", message.chat.id, status.message_id, parse_mode='Markdown')
+            
+            # PDF yaratish
             pdf = FPDF()
             pdf.add_page()
+            pdf.set_font("Arial", 'B', 16)
+            pdf.cell(200, 10, txt="OSINT SHERLOCK REPORT", ln=1, align='C')
             pdf.set_font("Arial", size=12)
-            pdf.cell(200, 10, txt=f"OSINT SHERLOCK REPORT: {username}", ln=1, align='C')
+            pdf.cell(200, 10, txt=f"Target Username: {username}", ln=2, align='L')
+            pdf.cell(200, 10, txt=f"Total Sites Found: {len(found_links)}", ln=3, align='L')
+            pdf.ln(10) # Bo'sh joy
             
+            pdf.set_text_color(0, 0, 255) # Linklar ko'k rangda bo'lishi uchun
             for link in found_links:
-                pdf.multi_cell(0, 10, txt=link.strip())
+                # Agar linkda g'alati belgilar bo'lsa xato bermasligi uchun replace
+                clean_link = link.encode('latin-1', 'ignore').decode('latin-1')
+                pdf.multi_cell(0, 10, txt=clean_link)
             
-            pdf_file = f"{username}_results.pdf"
+            pdf_file = f"report_{username}.pdf"
             pdf.output(pdf_file)
             
             with open(pdf_file, 'rb') as doc:
-                bot.send_document(message.chat.id, doc, caption=f"✅ *{username}* uchun qidiruv yakunlandi.\nTopilgan saytlar: {len(found_links)}")
-            os.remove(pdf_file)
+                bot.send_document(
+                    message.chat.id, 
+                    doc, 
+                    caption=f"✅ *Qidiruv yakunlandi!*\n\n👤 **Username:** `{username}`\n🌐 **Topilgan manzillar:** `{len(found_links)}` ta\n\n📄 Batafsil hisobot yuqoridagi PDF faylda.",
+                    parse_mode='Markdown'
+                )
+            
+            # Faylni serverdan o'chirish
+            if os.path.exists(pdf_file):
+                os.remove(pdf_file)
         else:
             bot.send_message(message.chat.id, f"❌ *{username}* bo'yicha hech qanday ochiq profil topilmadi.")
 
+    except subprocess.TimeoutExpired:
+        bot.send_message(message.chat.id, "⌛ **Xato:** Qidiruv vaqti tugadi (Timeout).")
     except Exception as e:
         print(f"Sherlock Error: {e}")
-        bot.send_message(message.chat.id, f"⚠️ *Xato yuz berdi:* Sherlock tizimida muammo. Serverda Sherlock klonlanganligini tekshiring.")
+        bot.send_message(message.chat.id, f"⚠️ **Tizim xatosi:** Sherlock ishga tushishda xatolik berdi.")
     
     finally:
-        bot.delete_message(message.chat.id, status.message_id)
-
+        try:
+            bot.delete_message(message.chat.id, status.message_id)
+        except:
+            pass
 # --- DEEP SEARCH (GOOGLE DORKING) ---
 @bot.message_handler(func=lambda message: message.text == '🔎 Deep Search')
 def deep_search_handler(message):
@@ -285,7 +343,7 @@ def run_google_dorks(message):
     bot.edit_message_text(res_text, message.chat.id, status.message_id, 
                           parse_mode='Markdown', disable_web_page_preview=True)
 
-##################################
+##############################################################
 # --- EMAIL TAHLIL (PROFESSIONAL OSINT) ---
 @bot.message_handler(func=lambda message: message.text == '📧 Email Tahlil')
 def email_start_handler(message):
