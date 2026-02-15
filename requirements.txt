@@ -1,4 +1,4 @@
-
+colorama
 pyTelegramBotAPI
 requests
 pillow
