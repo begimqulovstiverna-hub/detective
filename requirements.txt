@@ -1,4 +1,9 @@
+
 pyTelegramBotAPI
 requests
 pillow
 fpdf
+certifi
+openpyxl
+pandas
+PySocks
