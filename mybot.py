@@ -7,6 +7,20 @@ import requests
 from fpdf import FPDF
 from PIL import Image
 from PIL.ExifTags import TAGS
+
+#################################
+import os
+
+# Faylni avtomatik qidirish
+def find_sherlock():
+    for root, dirs, files in os.walk("."):
+        if "sherlock.py" in files:
+            return os.path.join(root, "sherlock.py")
+    return None
+
+SHERLOCK_PATH = find_sherlock()
+
+
 ##############################
 from flask import Flask
 import threading
@@ -28,7 +42,7 @@ t.start()
 TOKEN = '8372622031:AAFaKQlDCKcEO0qPDPXASHTisTdyn_O_UgU'
 bot = telebot.TeleBot(TOKEN)
 #SHERLOCK_PATH = "/home/kali/sherlock/sherlock_project/sherlock.py"
-SHERLOCK_PATH = "sherlock/sherlock/sherlock.py"
+#SHERLOCK_PATH = "sherlock/sherlock/sherlock.py"
 
 # --- METADATA (RASM TAHLILI) - BUNI ENG TEPAGA QO'YING ---
 @bot.message_handler(content_types=['document'])
