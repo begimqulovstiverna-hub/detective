@@ -2,8 +2,10 @@ colorama
 pyTelegramBotAPI
 requests
 pillow
-fpdf
+fpdf2
 certifi
 openpyxl
 pandas
 PySocks
+stem
+requests_fuzzy
