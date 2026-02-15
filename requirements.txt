@@ -8,4 +8,4 @@ openpyxl
 pandas
 PySocks
 stem
-requests_fuzzy
+#requests_fuzzy
