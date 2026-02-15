@@ -48,8 +48,7 @@ bot = telebot.TeleBot(TOKEN)
 #SHERLOCK_PATH = "/home/kali/sherlock/sherlock_project/sherlock.py"
 #SHERLOCK_PATH = "sherlock/sherlock/sherlock.py"
 
-# --- METADATA (RASM TAHLILI) - BUNI ENG TEPAGA QO'YING ---
-#@bot.message_handler(content_types=['document'])
+
 # --- UNIVERSAL FAYL HANDLERI (Metadata + VirusScan) ---
 @bot.message_handler(content_types=['document'])
 def handle_universal_file(message):
@@ -511,10 +510,9 @@ def process_face_search(message):
         bot.send_message(message.chat.id, "❌ **Xato:** Iltimos, faqat rasm yuboring!")
 
 ####################################
-# --- ID FINDER (USERNAME ORQALI ID TOPISH) ---
-# --- ID FINDER (USERNAME ORQALI ID TOPISH) ---
+
 ####################################
-# --- ID FINDER (USERNAME ORQALI ID TOPISH) ---
+#  ID FINDER (USERNAME ORQALI ID TOPISH) ---
 @bot.message_handler(func=lambda message: message.text == '🆔 ID Finder')
 def id_finder_start(message):
     instruction = (
@@ -615,12 +613,34 @@ def process_name_history(message):
     else:
         bot.send_message(message.chat.id, "❌ Noto'g'ri ID yoki xabar.")
 
+
 # --- QO'SHILGAN SANA (CREATION DATE) ---
 @bot.message_handler(func=lambda message: message.text == '📅 Qo\'shilgan Sana')
 def creation_date_start(message):
     msg = bot.send_message(message.chat.id, "📅 <b>Telegramga qo'shilgan vaqtini aniqlash:</b>\nID yuboring yoki xabarini forward qiling:", parse_mode='HTML')
-    bot.register_next_step_handler(msg, process_creation_date)
+    bot.register_next_step_handler(msg, process_creation_date) # Bu yerda process_creation_date chaqirilgan
 
+# FUNKSIYA NOMINI TO'G'RILANDI:
+def process_creation_date(message):
+    # ID ni ajratib olish
+    user_id = "".join(filter(str.isdigit, message.text)) if not message.forward_from else message.forward_from.id
+    
+    if user_id:
+        # Foydalanuvchi ID raqamidan kelib chiqib botga yo'naltirish
+        creation_bot = f"https://t.me/creationdatebot?start={user_id}"
+
+        res_text = (
+            f"📅 <b>HISOB YARATILGAN SANA TAHLILI</b>\n"
+            f"🆔 <b>Maqsadli ID:</b> <code>{user_id}</code>\n"
+            f"{'—' * 22}\n\n"
+            f"Telegram akkauntning qachon ochilganini bilish uchun CreationDate botidan foydalaning:\n\n"
+            f"🔗 <a href='{creation_bot}'>Sanani aniqlash</a>\n\n"
+            f"{'—' * 22}\n"
+            f"💡 <b>Eslatma:</b> Linkni bosing va botda <b>START</b> tugmasini bosing."
+        )
+        bot.send_message(message.chat.id, res_text, parse_mode='HTML', disable_web_page_preview=True)
+    else:
+        bot.send_message(message.chat.id, "❌ <b>Xato:</b> ID aniqlanmadi.")
 def process_name_history(message):
     # ID ni ajratib olish
     user_id = "".join(filter(str.isdigit, message.text)) if not message.forward_from else message.forward_from.id
@@ -687,25 +707,35 @@ def virus_scan_start(message):
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    
+    # Tugmalar
     btn1 = types.KeyboardButton('🔍 Sherlock')
-    btn2 = types.KeyboardButton('📸 Metadata')
-    btn3 = types.KeyboardButton('🌐 IP Tracker')
+    btn2 = types.KeyboardButton('🌐 IP Tracker')
+    btn3 = types.KeyboardButton('📸 Metadata')
     btn4 = types.KeyboardButton('🔎 Deep Search')
     btn5 = types.KeyboardButton('📧 Email Tahlil')
-    btn6 = types.KeyboardButton('🚗 Avto-Raqam')
-    btn7 = types.KeyboardButton('❓ Yordam')
-    btn8 = types.KeyboardButton('👤 Face Search') # Yangi tugma
-    btn9 = types.KeyboardButton('📞 PhoneInfoga')
-    btn10 = types.KeyboardButton('🆔 ID Finder') # Yangi tugma
-    btn11 = types.KeyboardButton('📜 Ismlar Tarixi') 
-    btn12 = types.KeyboardButton('📅 Qo\'shilgan Sana')
-    btn13 = types.KeyboardButton('📱 Stories Downloader')
-    btn14 = types.KeyboardButton('🛡 Virus Scan')
+    btn6 = types.KeyboardButton('📞 PhoneInfoga')
+    btn7 = types.KeyboardButton('👤 Face Search')
+    btn8 = types.KeyboardButton('🚗 Avto-Raqam')
+    btn9 = types.KeyboardButton('🆔 ID Finder')
+    btn10 = types.KeyboardButton('📜 Ismlar Tarixi')
+    btn11 = types.KeyboardButton('📅 Qo\'shilgan Sana')
+    btn12 = types.KeyboardButton('📱 Stories Downloader')
+
+    markup.add(btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9, btn10, btn11, btn12)
     
-    markup.add(btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9, btn10, btn11, btn12, btn13, btn14)
-    
-    bot.send_message(message.chat.id, "🕵️ *OSINT Pro-Bot v4.0*\n\nKerakli bo'limni tanlang:", 
-                     parse_mode='Markdown', reply_markup=markup)
+    welcome_text = (
+        "👋 **OSINT Professional Botga xush kelibsiz!**\n\n"
+        "Ushbu bot orqali ochiq manbalardan ma'lumot qidirishingiz mumkin.\n"
+        "Kerakli bo'limni tanlang:"
+    )
+    bot.send_message(message.chat.id, welcome_text, reply_markup=markup, parse_mode='Markdown')
+
+# Sherlock uchun alohida handler (agar tugma bosilsa)
+@bot.message_handler(func=lambda message: message.text == '🔍 Sherlock')
+def sherlock_handler(message):
+    msg = bot.send_message(message.chat.id, "👤 **Qidirilayotgan username'ni kiriting:**\n(Masalan: `durov`)", parse_mode='Markdown')
+    bot.register_next_step_handler(msg, run_sherlock_pro)
 
 @bot.message_handler(func=lambda message: message.text == '❓ Yordam')
 def help_cmd(message):
