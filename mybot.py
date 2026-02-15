@@ -27,8 +27,8 @@ t.start()
 # ⚠️ TOKENINGIZNI KIRITING
 TOKEN = '8372622031:AAFaKQlDCKcEO0qPDPXASHTisTdyn_O_UgU'
 bot = telebot.TeleBot(TOKEN)
-SHERLOCK_PATH = "/home/kali/sherlock/sherlock_project/sherlock.py"
-
+#SHERLOCK_PATH = "/home/kali/sherlock/sherlock_project/sherlock.py"
+SHERLOCK_PATH = "sherlock/sherlock/sherlock.py"
 
 # --- METADATA (RASM TAHLILI) - BUNI ENG TEPAGA QO'YING ---
 @bot.message_handler(content_types=['document'])
