@@ -39,7 +39,7 @@ t = threading.Thread(target=run)
 t.start()
 
 # ⚠️ TOKENINGIZNI KIRITING
-TOKEN = '8372622031:AAFaKQlDCKcEO0qPDPXASHTisTdyn_O_UgU'
+TOKEN = '8372622031:AAGprQVHCyiKmHv-8dhRRN4srgvcYCLbldY'
 bot = telebot.TeleBot(TOKEN)
 #SHERLOCK_PATH = "/home/kali/sherlock/sherlock_project/sherlock.py"
 #SHERLOCK_PATH = "sherlock/sherlock/sherlock.py"
